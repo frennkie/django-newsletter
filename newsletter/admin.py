@@ -90,7 +90,7 @@ class NewsletterAdmin(admin.ModelAdmin):
 
 class NewsletterAdminLinkMixin(object):
     def admin_newsletter(self, obj):
-        opts = obj._meta
+        opts = Newsletter._meta
         newsletter = obj.newsletter
         url = reverse('admin:%s_%s_change' % (opts.app_label, opts.model_name),
                       args=(newsletter.id,), current_app=self.admin_site.name)
@@ -489,7 +489,7 @@ class SubscriptionAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
                 )
 
                 changelist_url = reverse(
-                    'admin:%s_%s_import_changelist' % (self.opts.app_label, self.opts.model_name)
+                    'admin:%s_%s_changelist' % (self.opts.app_label, self.opts.model_name)
                 )
                 return HttpResponseRedirect(changelist_url)
         else:
