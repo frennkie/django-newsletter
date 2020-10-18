@@ -1,6 +1,9 @@
 from __future__ import unicode_literals
 
 import logging
+
+from django.urls import path
+
 logger = logging.getLogger(__name__)
 
 import six
@@ -8,7 +11,6 @@ import six
 from django.db import models
 
 from django.conf import settings
-from django.conf.urls import url
 
 from django.contrib import admin, messages
 from django.contrib.sites.models import Site
@@ -21,7 +23,7 @@ from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render
 
 from django.utils.html import format_html
-from django.utils.translation import gettext as _, ngettext
+from django.utils.translation import ugettext as _, ungettext
 from django.utils.formats import date_format
 
 from django.views.decorators.clickjacking import xframe_options_sameorigin
@@ -35,7 +37,7 @@ except ImportError:  # Django < 1.10
 from sorl.thumbnail.admin import AdminImageMixin
 
 from .models import (
-    Newsletter, Subscription, Attachment, Article, Message, Submission
+    Newsletter, Subscription, Article, Message, Submission
 )
 
 from django.utils.timezone import now
@@ -50,7 +52,7 @@ from .compat import get_context, reverse
 
 from .settings import newsletter_settings
 
-# Construct URL's for icons
+# Contsruct URL's for icons
 ICON_URLS = {
     'yes': '%snewsletter/admin/img/icon-yes.gif' % settings.STATIC_URL,
     'wait': '%snewsletter/admin/img/waiting.gif' % settings.STATIC_URL,
@@ -168,9 +170,8 @@ class SubmissionAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
         if submission.sent or submission.prepared:
             messages.info(request, _("Submission already sent."))
             change_url = reverse(
-                'admin:%s_%s_change' % (self.opts.app_label, self.opts.model_name), args=[object_id]
+                'admin:newsletter_submission_change', args=[object_id]
             )
-
             return HttpResponseRedirect(change_url)
 
         submission.prepared = True
@@ -178,7 +179,7 @@ class SubmissionAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
 
         messages.info(request, _("Your submission is being sent."))
 
-        changelist_url = reverse('admin:%s_%s_changelist' % (self.opts.app_label, self.opts.model_name))
+        changelist_url = reverse('admin:newsletter_submission_changelist')
         return HttpResponseRedirect(changelist_url)
 
     """ URLs """
@@ -186,8 +187,8 @@ class SubmissionAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
         urls = super(SubmissionAdmin, self).get_urls()
 
         my_urls = [
-            url(
-                r'^(.+)/submit/$',
+            path(
+                '<object_id>/submit/',
                 self._wrap(self.submit),
                 name=self._view_name('submit')
             )
@@ -213,15 +214,6 @@ if (
             'Error importing ImperaviStackedInlineAdmin. '
             'Imperavi WYSIWYG text editor might not work.'
         )
-
-
-class AttachmentInline(admin.TabularInline):
-    model = Attachment
-    extra = 1
-
-    def has_change_permission(self, request, obj=None):
-        """ Prevent change of the file (instead needs to be deleted) """
-        return False
 
 
 class ArticleInline(AdminImageMixin, StackedInline):
@@ -255,7 +247,7 @@ class MessageAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
     date_hierarchy = 'date_create'
     prepopulated_fields = {'slug': ('title',)}
 
-    inlines = [ArticleInline, AttachmentInline, ]
+    inlines = [ArticleInline, ]
 
     """ List extensions """
     def admin_title(self, obj):
@@ -273,8 +265,7 @@ class MessageAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
         return render(
             request,
             "admin/newsletter/message/preview.html",
-            {'message': self._getobj(request, object_id),
-             'attachments': Attachment.objects.filter(message_id=object_id)},
+            {'message': self._getobj(request, object_id)},
         )
 
     @xframe_options_sameorigin
@@ -316,10 +307,9 @@ class MessageAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
 
     def submit(self, request, object_id):
         submission = Submission.from_message(self._getobj(request, object_id))
-        opts = submission._meta
 
         change_url = reverse(
-            'admin:%s_%s_change' % (opts.app_label, opts.model_name), args=[submission.id])
+            'admin:newsletter_submission_change', args=[submission.id])
 
         return HttpResponseRedirect(change_url)
 
@@ -336,21 +326,21 @@ class MessageAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
         urls = super(MessageAdmin, self).get_urls()
 
         my_urls = [
-            url(r'^(.+)/preview/$',
-                self._wrap(self.preview),
-                name=self._view_name('preview')),
-            url(r'^(.+)/preview/html/$',
-                self._wrap(self.preview_html),
-                name=self._view_name('preview_html')),
-            url(r'^(.+)/preview/text/$',
-                self._wrap(self.preview_text),
-                name=self._view_name('preview_text')),
-            url(r'^(.+)/submit/$',
-                self._wrap(self.submit),
-                name=self._view_name('submit')),
-            url(r'^(.+)/subscribers/json/$',
-                self._wrap(self.subscribers_json),
-                name=self._view_name('subscribers_json')),
+            path('<object_id>/preview/',
+                 self._wrap(self.preview),
+                 name=self._view_name('preview')),
+            path('<object_id>/preview/html/',
+                 self._wrap(self.preview_html),
+                 name=self._view_name('preview_html')),
+            path('<object_id>/preview/text/',
+                 self._wrap(self.preview_text),
+                 name=self._view_name('preview_text')),
+            path('<object_id>/submit/',
+                 self._wrap(self.submit),
+                 name=self._view_name('submit')),
+            path('<object_id>/subscribers/json/',
+                 self._wrap(self.subscribers_json),
+                 name=self._view_name('subscribers_json')),
         ]
 
         return my_urls + urls
@@ -419,7 +409,7 @@ class SubscriptionAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
         rows_updated = queryset.update(subscribed=True)
         self.message_user(
             request,
-            ngettext(
+            ungettext(
                 "%d user has been successfully subscribed.",
                 "%d users have been successfully subscribed.",
                 rows_updated
@@ -431,7 +421,7 @@ class SubscriptionAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
         rows_updated = queryset.update(subscribed=False)
         self.message_user(
             request,
-            ngettext(
+            ungettext(
                 "%d user has been successfully unsubscribed.",
                 "%d users have been successfully unsubscribed.",
                 rows_updated
@@ -451,7 +441,7 @@ class SubscriptionAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
                     form.cleaned_data['newsletter'].pk
 
                 confirm_url = reverse(
-                    'admin:%s_%s_import_confirm' % (self.opts.app_label, self.opts.model_name)
+                    'admin:newsletter_subscription_import_confirm'
                 )
                 return HttpResponseRedirect(confirm_url)
         else:
@@ -465,8 +455,9 @@ class SubscriptionAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
 
     def subscribers_import_confirm(self, request):
         # If no addresses are in the session, start all over.
+
         if 'addresses' not in request.session:
-            import_url = reverse('admin:%s_%s_import' % (self.opts.app_label, self.opts.model_name))
+            import_url = reverse('admin:newsletter_subscription_import')
             return HttpResponseRedirect(import_url)
 
         addresses = request.session['addresses']
@@ -491,7 +482,7 @@ class SubscriptionAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
 
                 messages.success(
                     request,
-                    ngettext(
+                    ungettext(
                         "%d subscription has been successfully added.",
                         "%d subscriptions have been successfully added.",
                         len(addresses)
@@ -499,7 +490,7 @@ class SubscriptionAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
                 )
 
                 changelist_url = reverse(
-                    'admin:%s_%s_changelist' % (self.opts.app_label, self.opts.model_name)
+                    'admin:newsletter_subscription_changelist'
                 )
                 return HttpResponseRedirect(changelist_url)
         else:
@@ -516,24 +507,24 @@ class SubscriptionAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
         urls = super(SubscriptionAdmin, self).get_urls()
 
         my_urls = [
-            url(r'^import/$',
-                self._wrap(self.subscribers_import),
-                name=self._view_name('import')),
-            url(r'^import/confirm/$',
-                self._wrap(self.subscribers_import_confirm),
-                name=self._view_name('import_confirm')),
+            path('import/',
+                 self._wrap(self.subscribers_import),
+                 name=self._view_name('import')),
+            path('import/confirm/',
+                 self._wrap(self.subscribers_import_confirm),
+                 name=self._view_name('import_confirm')),
         ]
         # Translated JS strings - these should be app-wide but are
         # only used in this part of the admin. For now, leave them here.
         if HAS_CBV_JSCAT:
-            my_urls.append(url(r'^jsi18n/$',
-                               JavaScriptCatalog.as_view(packages=('newsletter',)),
-                               name='newsletter_js18n'))
+            my_urls.append(path('jsi18n/',
+                           JavaScriptCatalog.as_view(packages=('newsletter',)),
+                           name='newsletter_js18n'))
         else:
-            my_urls.append(url(r'^jsi18n/$',
-                               javascript_catalog,
-                               {'packages': ('newsletter',)},
-                               name='newsletter_js18n'))
+            my_urls.append(path('jsi18n/',
+                                javascript_catalog,
+                                {'packages': ('newsletter',)},
+                                name='newsletter_js18n'))
 
         return my_urls + urls
 
