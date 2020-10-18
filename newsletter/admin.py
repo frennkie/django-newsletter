@@ -59,6 +59,49 @@ ICON_URLS = {
 }
 
 
+class SubmissionForSubscriptionInline(admin.TabularInline):
+    model = Submission.subscriptions.through
+
+    fields = ['id', 'newsletter', 'message', 'publish_date', 'publish', 'sent']
+    readonly_fields = ['newsletter', 'message', 'publish_date', 'publish', 'sent']
+
+    def newsletter(self, instance):
+        return instance.submission.newsletter
+
+    newsletter.short_description = _('newsletter')
+
+    def message(self, instance):
+        return instance.submission.message
+
+    message.short_description = _('message')
+
+    def publish_date(self, instance):
+        return instance.submission.publish_date
+
+    publish_date.short_description = _('publish_date')
+
+    def publish(self, instance):
+        return instance.submission.publish
+
+    publish.short_description = _('publish')
+    publish.boolean = True
+
+    def sent(self, instance):
+        return instance.submission.sent
+
+    sent.short_description = _('sent')
+    sent.boolean = True
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 class NewsletterAdmin(admin.ModelAdmin):
     list_display = (
         'title', 'admin_subscriptions', 'admin_messages', 'admin_submissions'
@@ -365,6 +408,8 @@ class SubscriptionAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
     date_hierarchy = 'subscribe_date'
     actions = ['make_subscribed', 'make_unsubscribed']
     exclude = ['unsubscribed']
+
+    inlines = [SubmissionForSubscriptionInline]
 
     """ List extensions """
     def admin_status(self, obj):
