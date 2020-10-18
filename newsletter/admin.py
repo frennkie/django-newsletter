@@ -112,7 +112,9 @@ class SubmissionForSubmissionInline(admin.TabularInline):
         if db_field.name == "subscription":
             parent_id = request.resolver_match.kwargs.get('object_id')
             if parent_id:
-                kwargs["queryset"] = Subscription.objects.filter(submission=parent_id)
+                submission = Submission.objects.get(pk=parent_id)
+                qs = Subscription.objects.filter(newsletter=submission.newsletter).filter(subscribed=True)
+                kwargs["queryset"] = qs
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
