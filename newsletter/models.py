@@ -653,8 +653,6 @@ class Submission(models.Model):
 
         return super(Submission, self).save()
 
-
-
     def get_absolute_url(self):
         assert self.newsletter.slug
         assert self.message.slug
@@ -683,7 +681,7 @@ class Submission(models.Model):
         help_text=_('If you select none, the system will automatically find '
                     'the subscribers for you.'),
         blank=True, db_index=True, verbose_name=_('recipients'),
-        limit_choices_to={'subscribed': True}
+        through='SubmissionSubscriptions'
     )
 
     publish_date = models.DateTimeField(
@@ -707,6 +705,24 @@ class Submission(models.Model):
         default=False, verbose_name=_('sending'),
         db_index=True, editable=False
     )
+
+
+class SubmissionSubscriptions(models.Model):
+    submission = models.ForeignKey('Submission', models.DO_NOTHING)
+    subscription = models.ForeignKey('Subscription', models.DO_NOTHING)
+
+    status = models.CharField(
+        max_length=140,
+        blank=True, null=True  # optional
+    )
+
+    class Meta:
+        db_table = 'newsletter_submission_subscriptions'
+        unique_together = (('submission', 'subscription'),)
+
+        verbose_name = _('Subscription Submission')
+        verbose_name_plural = _('Subscription Submissions')
+
 
 def get_address(name, email):
     # Converting name to ascii for compatibility with django < 1.9.

@@ -35,7 +35,7 @@ except ImportError:  # Django < 1.10
 from sorl.thumbnail.admin import AdminImageMixin
 
 from .models import (
-    Newsletter, Subscription, Article, Message, Submission
+    Newsletter, Subscription, Article, Message, Submission, SubmissionSubscriptions
 )
 
 from django.utils.timezone import now
@@ -102,6 +102,49 @@ class SubmissionForSubscriptionInline(admin.TabularInline):
         return False
 
 
+class SubmissionForSubmissionInline(admin.TabularInline):
+    model = Submission.subscriptions.through
+    fields = ['id', 'subscription', 'status']
+
+    readonly_fields = ('status',)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "subscription":
+            parent_id = request.resolver_match.kwargs.get('object_id')
+            if parent_id:
+                kwargs["queryset"] = Subscription.objects.filter(submission=parent_id)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+class SubmissionSubscriptionsAdmin(admin.ModelAdmin):
+    list_display = ('id', 'newsletter', 'user_email', 'submission')
+
+    list_filter = ('submission__newsletter', 'subscription__user', 'subscription')
+
+    readonly_fields = ['newsletter', 'user_email']
+
+    def newsletter(self, instance):
+        return instance.submission.newsletter
+
+    newsletter.short_description = _('newsletter')
+
+    def user_email(self, instance):
+        if instance.subscription.user:
+            return instance.subscription.user.email
+        return instance.subscription.email_field
+
+    user_email.short_description = _('user_email')
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 class NewsletterAdmin(admin.ModelAdmin):
     list_display = (
         'title', 'admin_subscriptions', 'admin_messages', 'admin_submissions'
@@ -153,6 +196,8 @@ class SubmissionAdmin(NewsletterAdminLinkMixin, ExtendibleModelAdminMixin,
     list_filter = ('newsletter', 'publish', 'sent')
     save_as = True
     filter_horizontal = ('subscriptions',)
+
+    inlines = [SubmissionForSubmissionInline]
 
     """ List extensions """
     def admin_message(self, obj):
@@ -576,3 +621,5 @@ admin.site.register(Newsletter, NewsletterAdmin)
 admin.site.register(Submission, SubmissionAdmin)
 admin.site.register(Message, MessageAdmin)
 admin.site.register(Subscription, SubscriptionAdmin)
+
+admin.site.register(SubmissionSubscriptions, SubmissionSubscriptionsAdmin)
