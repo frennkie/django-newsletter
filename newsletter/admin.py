@@ -108,6 +108,17 @@ class SubmissionForSubmissionInline(admin.TabularInline):
 
     readonly_fields = ('status',)
 
+    extra = 0
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = super().get_readonly_fields(request, obj)
+
+        if obj:
+            if obj.sent or obj.prepared:
+                readonly_fields += ('subscription',)
+
+        return readonly_fields
+
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "subscription":
             parent_id = request.resolver_match.kwargs.get('object_id')
