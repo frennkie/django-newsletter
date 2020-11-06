@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import models, migrations
-import django.db.models.manager
 import django.contrib.sites.managers
+from django.db import models, migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('newsletter', '0001_initial'),
     ]
@@ -21,12 +19,19 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='subscription',
             name='email_field',
-            field=models.EmailField(db_column='email', max_length=254, blank=True, null=True, verbose_name='e-mail', db_index=True),
+            field=models.EmailField(
+                db_column='email',
+                max_length=254,
+                blank=True,
+                null=True,
+                verbose_name='e-mail',
+                db_index=True
+            ),
         ),
     ]
 
     # if using Django version 1.8 and later also apply AlterModelManagers and AlterField to GenericIPAddressField
-    if django.VERSION >= (1,8):
+    if django.VERSION >= (1, 8):
         operations += [
             migrations.AlterModelManagers(
                 name='newsletter',

@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import models, migrations
-import sorl.thumbnail.fields
-import newsletter.utils
 import django.utils.timezone
+import sorl.thumbnail.fields
 from django.conf import settings
+from django.db import models, migrations
+
+import newsletter.utils
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('sites', '0001_initial'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -20,11 +20,20 @@ class Migration(migrations.Migration):
             name='Article',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('sortorder', models.PositiveIntegerField(help_text='Sort order determines the order in which articles are concatenated in a post.', verbose_name='sort order', db_index=True)),
+                ('sortorder', models.PositiveIntegerField(
+                    help_text='Sort order determines the order in which articles are concatenated in a post.',
+                    verbose_name='sort order',
+                    db_index=True)
+                 ),
                 ('title', models.CharField(max_length=200, verbose_name='title')),
                 ('text', models.TextField(verbose_name='text')),
                 ('url', models.URLField(null=True, verbose_name='link', blank=True)),
-                ('image', sorl.thumbnail.fields.ImageField(upload_to='newsletter/images/%Y/%m/%d', null=True, verbose_name='image', blank=True)),
+                ('image', sorl.thumbnail.fields.ImageField(
+                    upload_to='newsletter/images/%Y/%m/%d',
+                    null=True,
+                    verbose_name='image',
+                    blank=True)
+                 ),
             ],
             options={
                 'ordering': ('sortorder',),
@@ -57,7 +66,11 @@ class Migration(migrations.Migration):
                 ('email', models.EmailField(help_text='Sender e-mail', max_length=75, verbose_name='e-mail')),
                 ('sender', models.CharField(help_text='Sender name', max_length=200, verbose_name='sender')),
                 ('visible', models.BooleanField(default=True, db_index=True, verbose_name='visible')),
-                ('send_html', models.BooleanField(default=True, help_text='Whether or not to send HTML versions of e-mails.', verbose_name='send html')),
+                ('send_html', models.BooleanField(
+                    default=True,
+                    help_text='Whether or not to send HTML versions of e-mails.',
+                    verbose_name='send html'
+                )),
                 ('site', models.ManyToManyField(default=newsletter.utils.get_default_sites, to='sites.Site')),
             ],
             options={
@@ -70,13 +83,38 @@ class Migration(migrations.Migration):
             name='Submission',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('publish_date', models.DateTimeField(default=django.utils.timezone.now, null=True, verbose_name='publication date', db_index=True, blank=True)),
-                ('publish', models.BooleanField(default=True, help_text='Publish in archive.', db_index=True, verbose_name='publish')),
-                ('prepared', models.BooleanField(default=False, verbose_name='prepared', db_index=True, editable=False)),
+                ('publish_date', models.DateTimeField(
+                     default=django.utils.timezone.now,
+                     null=True,
+                     verbose_name='publication date',
+                     db_index=True,
+                     blank=True
+                 )),
+                ('publish', models.BooleanField(
+                    default=True,
+                    help_text='Publish in archive.',
+                    db_index=True,
+                    verbose_name='publish'
+                )),
+                ('prepared', models.BooleanField(
+                    default=False,
+                    verbose_name='prepared',
+                    db_index=True,
+                    editable=False
+                )),
                 ('sent', models.BooleanField(default=False, verbose_name='sent', db_index=True, editable=False)),
                 ('sending', models.BooleanField(default=False, verbose_name='sending', db_index=True, editable=False)),
-                ('message', models.ForeignKey(verbose_name='message', to='newsletter.Message', on_delete=models.CASCADE)),
-                ('newsletter', models.ForeignKey(editable=False, to='newsletter.Newsletter', verbose_name='newsletter', on_delete=models.CASCADE)),
+                ('message', models.ForeignKey(
+                    verbose_name='message',
+                    to='newsletter.Message',
+                    on_delete=models.CASCADE
+                )),
+                ('newsletter', models.ForeignKey(
+                    editable=False,
+                    to='newsletter.Newsletter',
+                    verbose_name='newsletter',
+                    on_delete=models.CASCADE
+                )),
             ],
             options={
                 'verbose_name': 'submission',
@@ -88,17 +126,45 @@ class Migration(migrations.Migration):
             name='Subscription',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('name_field', models.CharField(db_column='name', max_length=30, blank=True, help_text='optional', null=True, verbose_name='name')),
-                ('email_field', models.EmailField(db_column='email', max_length=75, blank=True, null=True, verbose_name='e-mail', db_index=True)),
+                ('name_field', models.CharField(
+                    db_column='name',
+                    max_length=30,
+                    blank=True,
+                    help_text='optional',
+                    null=True,
+                    verbose_name='name'
+                )),
+                ('email_field', models.EmailField(
+                    db_column='email',
+                    max_length=75,
+                    blank=True,
+                    null=True,
+                    verbose_name='e-mail',
+                    db_index=True
+                )),
                 ('ip', models.IPAddressField(null=True, verbose_name='IP address', blank=True)),
                 ('create_date', models.DateTimeField(default=django.utils.timezone.now, editable=False)),
-                ('activation_code', models.CharField(default=newsletter.utils.make_activation_code, max_length=40, verbose_name='activation code')),
+                ('activation_code', models.CharField(
+                    default=newsletter.utils.make_activation_code,
+                    max_length=40,
+                    verbose_name='activation code'
+                )),
                 ('subscribed', models.BooleanField(default=False, db_index=True, verbose_name='subscribed')),
                 ('subscribe_date', models.DateTimeField(null=True, verbose_name='subscribe date', blank=True)),
                 ('unsubscribed', models.BooleanField(default=False, db_index=True, verbose_name='unsubscribed')),
                 ('unsubscribe_date', models.DateTimeField(null=True, verbose_name='unsubscribe date', blank=True)),
-                ('newsletter', models.ForeignKey(verbose_name='newsletter', to='newsletter.Newsletter', on_delete=models.CASCADE)),
-                ('user', models.ForeignKey(verbose_name='user', blank=True, to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)),
+                ('newsletter', models.ForeignKey(
+                    verbose_name='newsletter',
+                    to='newsletter.Newsletter',
+                    on_delete=models.CASCADE
+                )),
+                ('user', models.ForeignKey(
+                    verbose_name='user',
+                    blank=True,
+                    to=settings.AUTH_USER_MODEL,
+                    null=True,
+                    on_delete=models.CASCADE
+                )),
             ],
             options={
                 'verbose_name': 'subscription',
@@ -113,7 +179,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='submission',
             name='subscriptions',
-            field=models.ManyToManyField(help_text='If you select none, the system will automatically find the subscribers for you.', to='newsletter.Subscription', db_index=True, verbose_name='recipients', blank=True),
+            field=models.ManyToManyField(
+                help_text='If you select none, the system will automatically find the subscribers for you.',
+                to='newsletter.Subscription',
+                db_index=True,
+                verbose_name='recipients',
+                blank=True),
             preserve_default=True,
         ),
         migrations.AddField(
@@ -129,7 +200,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='article',
             name='post',
-            field=models.ForeignKey(related_name='articles', verbose_name='message', to='newsletter.Message', on_delete=models.CASCADE),
+            field=models.ForeignKey(
+                related_name='articles',
+                verbose_name='message',
+                to='newsletter.Message',
+                on_delete=models.CASCADE
+            ),
             preserve_default=True,
         ),
     ]
